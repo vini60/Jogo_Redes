@@ -3,85 +3,106 @@ using System.Collections;
 using UnityEngine.UI;
 
 public class ControlaClique : MonoBehaviour {
+	public int numRouters = 0;
+
 	private RaycastHit hit;
+
 	private Transform objetoClicado;
+	private Transform objetoClicadoAnteriormente;
 	private Transform objetoSelecionado;
-	private Transform objetoSelecionadoAtual;
-	private Transform objetoAtual;
+	private Transform objetoSelecionadoAnteriormente;
+	public Transform paredeSelecionada;
+	public Transform paredeSelecionadaAnteriormente;
+	public Transform objetoAtrasParede;
+	public Transform objetoAtrasParedeAnteriormente;
 
-	void Start () {
-		objetoClicado = null;
-	}
+	private int tipoClique = 0;
 
-	/*void Update () {
-		Ray raio = Camera.main.ScreenPointToRay(Input.mousePosition);
-		if(Input.GetMouseButtonDown (0)){
-			if(Physics.Raycast(raio, out hit) && (Input.GetMouseButtonDown (0))){ // SE APERTAR O BOTAO ESQUERDO DO MOUSE
-				if (hit.transform.GetComponent<Collider>().CompareTag("clicavel")){ // CHECAR SE O CLIQUE INTERCEPTOU UM OBJETO CLICAVEL
-					if(objetoSelecionado != hit.transform){ // CHECAR SE O OBJETO CLICADO E DIFERENTE DO OBJETO ATUAL
-						if(objetoSelecionado) //SE UM OBJETO FOI SELECIONADO ANTERIORMENTE, DESATIVAR ELE
-							objetoSelecionado.SendMessage("Desativado",SendMessageOptions.DontRequireReceiver);
-						objetoSelecionado = hit.transform; // SE SIM, ALTERAR O OBJETO SELECIONADO PARA AQUELE QUE FOI CLICADO
-					}
-					objetoSelecionado.SendMessage("Ativado", 1, SendMessageOptions.DontRequireReceiver);
-				}else{
-					if(objetoSelecionado != null){ // HA DE HAVER UM OBJETO SELECIONADO PARA ELE SER DESATIVADO
-						objetoSelecionado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
-						objetoSelecionado = null;
-					}
-				}
-			}
-		}else if(Input.GetMouseButtonDown (1)){
-			if(objetoSelecionado != null){ // HA DE HAVER UM OBJETO SELECIONADO PARA ELE SER DESATIVADO
-				objetoSelecionado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
-			}
-		}
-	}*/
+	private float tempoHint = 0;
+
+	public LayerMask clicavel;
+
 	void Update () {
 		Ray raio = Camera.main.ScreenPointToRay(Input.mousePosition);
-		if(Physics.Raycast(raio, out hit)){ // SE MOUSE ESTIVER EM CIMA DE UM OBJETO CLICAVEL
-			if (hit.transform.GetComponent<Collider>().CompareTag("clicavel")){
-				if(Input.GetMouseButtonDown (0)){
-					if(objetoClicado){
-						if(objetoClicado != hit.transform){
-							objetoClicado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
-						}
-					}
-					objetoClicado = hit.transform;
-				}
-				objetoSelecionadoAtual = hit.transform;
-				if(objetoSelecionadoAtual != objetoClicado){
-					objetoSelecionadoAtual.SendMessage("Selecionado", SendMessageOptions.DontRequireReceiver);
-				}
-				if(objetoSelecionado){
-					if(objetoSelecionado != hit.transform){
-						objetoSelecionado.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
-					}
-				}
+		if(Physics.Raycast(raio, out hit, Mathf.Infinity, clicavel)){
+			Debug.Log (hit.transform);
+			if(hit.transform.GetComponent<Collider>().CompareTag("clicavel")){
 				objetoSelecionado = hit.transform;
+				if(Input.GetMouseButtonDown (0)){
+					tipoClique = 1;
+					objetoClicado = objetoSelecionado;
+				}
+				if(!objetoSelecionado.GetComponent<Movel>().movelVazio){
+					tempoHint += Time.deltaTime;
+				}else{
+					tempoHint = 0;
+				}
 			}else{
-				if(objetoSelecionado)
-					objetoSelecionado.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
+				tempoHint = 0;
 			}
 		}else{
+			tempoHint = 0;
+			if(Input.GetMouseButtonDown (0) && !UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(-1)){
+				if(objetoClicado)
+					objetoClicado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
+				objetoClicado = null;
+			}
 			if(objetoSelecionado)
 				objetoSelecionado.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
+			objetoSelecionado = null;
 		}
-		if(objetoClicado){
-			objetoClicado.SendMessage("Ativado", SendMessageOptions.DontRequireReceiver);
+		if(Input.GetMouseButtonDown (1)){
+			if(!UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(-1)){
+				objetoClicado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
+				objetoClicado = null;
+			}
 		}
 
-		if(Input.GetMouseButtonDown (1)){
-			if(objetoClicado)
-				objetoClicado.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
-			objetoClicado = null;
+		if(Physics.Raycast(raio, out hit)){
+			if(hit.transform.GetComponent<Collider>().CompareTag("parede")){
+				paredeSelecionada = hit.transform;
+			}
+		}
+
+		if(paredeSelecionada){
+			if(paredeSelecionadaAnteriormente != paredeSelecionada){
+				if(paredeSelecionadaAnteriormente)
+					paredeSelecionadaAnteriormente.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
+				paredeSelecionadaAnteriormente = paredeSelecionada;
+			}
+			paredeSelecionada.SendMessage("Selecionado", SendMessageOptions.DontRequireReceiver);
+			paredeSelecionadaAnteriormente = paredeSelecionada;
+		}else{
+			if(paredeSelecionadaAnteriormente)
+				paredeSelecionadaAnteriormente.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
+		}
+
+
+		if(objetoSelecionado){
+			if(objetoSelecionadoAnteriormente != objetoSelecionado){
+				if(objetoSelecionadoAnteriormente)
+					objetoSelecionadoAnteriormente.SendMessage("Deselecionado", SendMessageOptions.DontRequireReceiver);
+				objetoSelecionadoAnteriormente = objetoSelecionado;
+			}
+			objetoSelecionado.SendMessage("Selecionado", SendMessageOptions.DontRequireReceiver);
+		}
+		if(objetoClicado){
+			if(objetoClicadoAnteriormente != objetoClicado){
+				if(objetoClicadoAnteriormente){
+					objetoClicadoAnteriormente.SendMessage("Desativado", SendMessageOptions.DontRequireReceiver);
+
+				}
+				objetoClicadoAnteriormente = objetoClicado;
+			}
+			objetoClicado.SendMessage("Ativado", tipoClique, SendMessageOptions.DontRequireReceiver);
+		}
+		if(tempoHint > 1){
+			//objetoSelecionado
 		}
 	}
 	public void RetornaObjetoClicado(int tipoClique){
-		Debug.Log ("CLICOU");
 		if(objetoClicado)
 			objetoClicado.SendMessage("AdicionaDispositivo", tipoClique , SendMessageOptions.DontRequireReceiver);
 	}
-
 
 }
